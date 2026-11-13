@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Calendrier — Inscriptions</title>
+  <script src="fullcalendar/index.global.min.js"></script>
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; background: #f9f9f9; }
+    #calendar { max-width: 1100px; margin: 16px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,.08); padding: 12px; }
+    .fc { font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <div id="calendar"></div>
+  <script>
+    const calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+      initialView: 'dayGridMonth',
+      locale: 'fr',
+      firstDay: 1,
+      height: 'auto',
+      headerToolbar: {
+        left: 'prev,next today',
+        center: 'title',
+        right: 'dayGridMonth,timeGridWeek,listMonth'
+      },
+      events: '../api/events',
+      eventDataTransform: function(raw) {
+        return {
+          id: raw.id,
+          title: raw.title,
+          start: raw.start,
+          end: raw.end,
+          allDay: raw.allDay,
+          backgroundColor: raw.backgroundColor,
+          borderColor: raw.borderColor,
+          extendedProps: raw.extendedProps,
+        };
+      },
+      buttonText: {
+        today: "Aujourd'hui",
+        month: 'Mois',
+        week: 'Semaine',
+        list: 'Liste'
+      }
+    });
+    calendar.render();
+  </script>
+</body>
+</html>

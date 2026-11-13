@@ -1,0 +1,25 @@
+# Secrets / config locale
+.env
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Sorties
+**/data/raw_*.html
+**/data/inscriptions_*.json
+**/data/inscriptions_*.csv
+**/data/inscriptions_*.ics
+**/data/cal_*.json
+**/data/state_*.json
+
+# uv
+.venv312
+.uv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store

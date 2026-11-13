@@ -1,0 +1,31 @@
+<div id="status-content">
+  {% if is_syncing %}
+    <article aria-busy="true" class="status syncing">
+      <header><strong>Synchronisation en cours…</strong></header>
+      <p>Cette opération peut prendre 30–60 secondes (login + extraction + publication agenda HA).</p>
+    </article>
+  {% elif last_sync and last_sync.ok %}
+    <article class="status ok">
+      <header>
+        <strong>Dernière sync : OK</strong>
+        <small>{{ last_sync.at }}</small>
+      </header>
+      <ul>
+        <li>{{ last_sync.inscriptions }} inscriptions actives</li>
+        {% if last_sync.publish %}
+          <li>Agenda HA : +{{ last_sync.publish.created }}, ~{{ last_sync.publish.updated }}, -{{ last_sync.publish.deleted }} (erreurs: {{ last_sync.publish.errors }})</li>
+        {% endif %}
+      </ul>
+    </article>
+  {% elif last_sync %}
+    <article class="status error">
+      <header><strong>Dernière sync : erreur</strong></header>
+      <p><code>{{ last_sync.error or last_error }}</code></p>
+    </article>
+  {% else %}
+    <article>
+      <header><strong>Aucune synchronisation enregistrée</strong></header>
+      <p>Cliquez sur « Synchroniser maintenant » pour démarrer.</p>
+    </article>
+  {% endif %}
+</div>

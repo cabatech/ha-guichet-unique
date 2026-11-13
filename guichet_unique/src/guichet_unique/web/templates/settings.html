@@ -1,0 +1,413 @@
+{% extends "base.html" %}
+
+{% block title %}{% if tab == 'configuration' %}Configuration{% elif tab == 'integration' %}Intégration externe{% else %}Tarifs par service{% endif %}{% endblock %}
+
+{% block content %}
+<section>
+  <hgroup>
+    <h1>
+      {% if tab == 'configuration' %}Configuration &amp; synchronisation
+      {% elif tab == 'integration' %}Intégration externe (Google Agenda, Apple, DAVx5…)
+      {% else %}Tarifs par service
+      {% endif %}
+    </h1>
+    <p>
+      {% if tab == 'configuration' %}
+        Pilotage de la WebUI : déclenchement manuel de sync, état de l'auto-sync et résumé
+        des variables d'environnement utilisées.
+      {% elif tab == 'integration' %}
+        Génère des <strong>liens d'abonnement iCal</strong> à donner à Google Agenda,
+        Apple Calendar, Thunderbird, DAVx5 (lecture seule). Chaque token est révocable
+        indépendamment via cette page.
+      {% else %}
+        Définissez le prix unitaire de chaque service. Quand un tarif change,
+        un nouveau est ajouté et l'ancien est automatiquement clos à la veille.
+        L'historique complet est conservé pour réconcilier les factures.
+      {% endif %}
+    </p>
+  </hgroup>
+
+  <nav class="tabs">
+    <ul role="tablist">
+      <li>
+        <a href="settings?tab=pricing"
+           {% if tab == 'pricing' %}aria-selected="true" class="active"{% endif %}>
+          💰 Tarifs
+        </a>
+      </li>
+      <li>
+        <a href="settings?tab=configuration"
+           {% if tab == 'configuration' %}aria-selected="true" class="active"{% endif %}>
+          ⚙️ Configuration &amp; sync
+        </a>
+      </li>
+      <li>
+        <a href="settings?tab=integration"
+           {% if tab == 'integration' %}aria-selected="true" class="active"{% endif %}>
+          🔗 Intégration externe
+        </a>
+      </li>
+    </ul>
+  </nav>
+
+  {% if tab == 'pricing' %}
+    {# --- Onglet Tarifs --- #}
+    <article>
+      <header><strong>Ajouter / modifier un tarif</strong></header>
+      <form id="price-form"
+            hx-post="api/prices"
+            hx-swap="none"
+            hx-on::after-request="
+              if(event.detail.xhr.status === 200) {
+                location.reload();
+              } else {
+                alert('Erreur : ' + event.detail.xhr.responseText);
+              }"
+      >
+        <div class="grid">
+          <label>
+            Service
+            <select name="service" required>
+              {% for s in all_services %}
+                <option value="{{ s }}" {% if s == default_service %}selected{% endif %}>
+                  {{ s }}
+                </option>
+              {% endfor %}
+            </select>
+          </label>
+          <label>
+            Prix unitaire (€)
+            <input type="number" name="amount_eur" step="0.01" min="0" required placeholder="6.50" />
+          </label>
+          <label>
+            Date d'effet
+            <input type="date" name="start_date" required />
+          </label>
+        </div>
+        <label>
+          Commentaire (optionnel)
+          <input type="text" name="comment" maxlength="200" placeholder="tarif 2026/2027, votation du 02-09-2026…" />
+        </label>
+        <p>
+          <button type="submit" class="primary">Ajouter</button>
+          <small>L'ancien tarif en cours sera clôturé à la veille de la nouvelle date.</small>
+        </p>
+      </form>
+    </article>
+
+    <article>
+      <header><strong>Carnet de prix ({{ entries|length }} entrée{{ '' if entries|length == 1 else 's' }})</strong></header>
+      {% if entries %}
+        <figure>
+          <table>
+            <thead>
+              <tr>
+                <th>Service</th>
+                <th>Prix</th>
+                <th>Du</th>
+                <th>Au</th>
+                <th>Commentaire</th>
+                <th>Statut</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for e in entries %}
+                <tr>
+                  <td>{{ e.service }}</td>
+                  <td><strong>{{ '%.2f €' | format(e.amount_eur) }}</strong></td>
+                  <td><code>{{ e.start_date }}</code></td>
+                  <td>
+                    {% if e.end_date %}<code>{{ e.end_date }}</code>{% else %}—{% endif %}
+                  </td>
+                  <td>{{ e.comment or '' }}</td>
+                  <td>
+                    {% if not e.end_date %}
+                      <mark class="ok">en cours</mark>
+                    {% else %}<small>clos</small>{% endif %}
+                  </td>
+                  <td>
+                    <form hx-delete="api/prices/{{ e.id }}" hx-swap="none"
+                          hx-on::after-request="if(event.detail.xhr.status === 200) location.reload()"
+                          hx-confirm="Supprimer cette entrée ?">
+                      <button type="submit" class="danger outline" {% if not e.end_date %}disabled{% endif %}>×</button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          <figcaption>
+            <small>Les tarifs « en cours » ne peuvent pas être supprimés directement — ajoutez un nouveau tarif ou laissez-le expirer.</small>
+          </figcaption>
+        </figure>
+      {% else %}
+        <p><em>Aucun tarif défini pour l'instant.</em></p>
+      {% endif %}
+    </article>
+    <p>
+      <a href="facturation" role="button" class="secondary">Voir le récapitulatif mensuel →</a>
+      <a href="./" role="button" class="secondary outline">← Tableau de bord</a>
+    </p>
+
+  {% elif tab == 'configuration' %}
+    {# --- Onglet Configuration --- #}
+    <div id="status-card" hx-get="partials/status" hx-trigger="every 5s" hx-swap="innerHTML">
+      {% include "_status.html" %}
+    </div>
+
+    <article>
+      <header><strong>Synchronisation manuelle</strong></header>
+      <p>
+        Lance une extraction immédiate depuis le portail espace-citoyens.net. La tâche tourne
+        en arrière-plan (thread dédié) et la barre de statut se met à jour automatiquement.
+      </p>
+      <p>
+        <button class="primary"
+                hx-post="api/sync"
+                hx-vals='{"publish": true}'
+                hx-swap="none"
+                hx-on::after-request="setTimeout(()=>location.reload(), 500)">
+          Synchroniser maintenant (sync + publish)
+        </button>
+        <button
+                hx-post="api/sync"
+                hx-vals='{"publish": false}'
+                hx-swap="none"
+                hx-on::after-request="setTimeout(()=>location.reload(), 500)">
+          Sync seul (sans agenda HA)
+        </button>
+      </p>
+    </article>
+
+    <article>
+      <header><strong>Auto-sync (cron)</strong></header>
+      <p>
+        Lorsque l'auto-sync est actif, APScheduler tourne dans le même conteneur que la
+        WebUI et lance un sync + publish selon l'expression cron ci-dessous, en heure
+        Europe/Paris.
+      </p>
+      <table>
+        <tbody>
+          <tr>
+            <th>État</th>
+            <td>
+              {% if env_redacted.GUICHET_AUTO_SYNC != '0' %}
+                <mark class="ok">actif</mark>
+              {% else %}<mark class="warn">désactivé</mark>{% endif %}
+            </td>
+          </tr>
+          <tr>
+            <th>Expression cron</th>
+            <td><code>{{ env_redacted.GUICHET_CRON }}</code> <small>(défaut <code>0 6 * * *</code> = tous les jours à 6h)</small></td>
+          </tr>
+          <tr>
+            <th>Fuseau</th>
+            <td><code>Europe/Paris</code></td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="muted">
+        <small>
+          Pour modifier le cron ou désactiver l'auto-sync, édite
+          <code>GUICHET_CRON</code> et <code>GUICHET_AUTO_SYNC</code> dans le fichier
+          <code>.env</code>, puis recrée le conteneur : <code>docker compose up -d</code>.
+        </small>
+      </p>
+    </article>
+
+    <article>
+      <header><strong>Variables d'environnement actives</strong></header>
+      <p class="muted"><small>Les mots de passe et tokens sont masqués.</small></p>
+      <figure>
+        <table>
+          <tbody>
+            {% for key, value in env_redacted.items() %}
+              <tr>
+                <th><code>{{ key }}</code></th>
+                <td>
+                  {% if 'PASSWORD' in key or 'TOKEN' in key %}
+                    <em>(masqué)</em>
+                  {% else %}<code>{{ value }}</code>{% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+            <tr>
+              <th><code>GUICHET_VERSION</code></th>
+              <td><code>v{{ version }}</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </figure>
+    </article>
+
+    <p>
+      <a href="./" role="button" class="secondary outline">← Tableau de bord</a>
+    </p>
+
+  {% else %}
+    {# --- Onglet Intégration --- #}
+    <article>
+      <header><strong>Principe</strong></header>
+      <p>
+        Vous pouvez brancher ce calendrier dans <strong>Google Agenda</strong>, Apple
+        Calendar, Thunderbird ou DAVx5 (Android, mode lecture seule) en leur donnant
+        l'URL d'un flux iCal authentifié. Un <em>token</em> dans l'URL sert d'authentification.
+      </p>
+      <p>
+        <strong>Important</strong> :
+      </p>
+      <ul>
+        <li>Le flux est en <strong>lecture seule</strong> (subscription iCal). Toute
+            modification doit passer par le portail famille espace-citoyens.net.</li>
+        <li>L'URL publique est <code>{{ public_base_url }}</code> (modifiable via
+            <code>GUICHET_PUBLIC_URL</code> dans <code>.env</code>).</li>
+        <li>Si un token fuite, révoquez-le depuis cette page : le flux correspondant
+            cessera immédiatement d'être servi.</li>
+      </ul>
+    </article>
+
+    <article>
+      <header><strong>Créer un nouveau token d'abonnement</strong></header>
+      <form hx-post="api/ical-tokens"
+            hx-swap="none"
+            hx-on::after-request="
+              if(event.detail.xhr.status === 200) {
+                showTokenDialog(event.detail.xhr.response);
+              } else {
+                alert('Erreur : ' + event.detail.xhr.responseText);
+              }"
+      >
+        <label>
+          Étiquette (pour vous y retrouver)
+          <input type="text" name="label" required maxlength="80"
+                 placeholder="ex : Google Agenda Christophe, Google Stéphanie, iPhone Catherine…" />
+        </label>
+        <p>
+          <button type="submit" class="primary">Créer le token</button>
+          <small>Le token complet ne sera affiché <strong>qu'une seule fois</strong> après création.</small>
+        </p>
+      </form>
+    </article>
+
+    <article>
+      <header>
+        <strong>Tokens actifs ({{ ical_tokens|length }})</strong>
+        <small>révocables indépendamment</small>
+      </header>
+      {% if ical_tokens %}
+        <figure>
+          <table>
+            <thead>
+              <tr>
+                <th>Étiquette</th>
+                <th>Token (aperçu)</th>
+                <th>Créé le</th>
+                <th>Dernière utilisation</th>
+                <th>Lien d'abonnement</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for t in ical_tokens %}
+                <tr>
+                  <td><strong>{{ t.label }}</strong></td>
+                  <td><code>{{ t.token_preview }}</code></td>
+                  <td><small>{{ t.created_at[:10] }}</small></td>
+                  <td><small>{% if t.last_used_at %}{{ t.last_used_at[:19] }}{% else %}<em>jamais</em>{% endif %}</small></td>
+                  <td>
+                    <button type="button" class="outline"
+                            onclick="copyIcalUrl(this, '{{ public_base_url }}/ical/{{ t.full_token }}')">
+                      Copier
+                    </button>
+                    <small>URL <code>{{ public_base_url }}/ical/{{ t.full_token[:8] }}…</code></small>
+                  </td>
+                  <td>
+                    <form hx-delete="api/ical-tokens/{{ t.id }}" hx-swap="none"
+                          hx-on::after-request="if(event.detail.xhr.status === 200) location.reload()"
+                          hx-confirm="Révoquer le token '{{ t.label }}' ? Toute application utilisant ce lien cessera de recevoir les futures mises à jour."">
+                      <button type="submit" class="danger outline">Révoquer</button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </figure>
+      {% else %}
+        <p><em>Aucun token actif. Créez-en un ci-dessus pour pouvoir abonner un calendrier externe.</em></p>
+      {% endif %}
+    </article>
+
+    <article>
+      <header><strong>Branchement rapide</strong></header>
+      <dl>
+        <dt><strong>Google Agenda (web)</strong></dt>
+        <dd>
+          <ol>
+            <li>Ouvrir <a href="https://calendar.google.com/calendar/u/0/r?pli=1" target="_blank" rel="noopener">Google Agenda</a> (ou l'app mobile)</li>
+            <li>Autres agendas (à droite) → <strong>+</strong> → <em>À partir d'une URL</em></li>
+            <li>Coller l'URL copiée ci-dessus (<code>https://guichet.example.com/ical/&lt;token&gt;</code>)</li>
+            <li>Valider : la sync s'actualise toutes les ~12 h côté Google.</li>
+          </ol>
+        </dd>
+        <dt><strong>Apple Calendar (iOS / macOS)</strong></dt>
+        <dd>
+          <ol>
+            <li>Réglages → Calendrier → Comptes → Ajouter un compte → Autre → Ajouter un compte CalDAV</li>
+            <li>Type d'authentification : <em>URL</em></li>
+            <li>Adresse : l'URL complète copiée ci-dessus ; identifiant : au choix ; mot de passe : vide</li>
+          </ol>
+          <p class="muted">
+            <small>Apple Calendar interprète l'iCal comme un calendrier en lecture seule abonné. C'est la même URL.</small>
+          </p>
+        </dd>
+        <dt><strong>DAVx⁵ (Android, lecture seule)</strong></dt>
+        <dd>
+          <ol>
+            <li>DAVx⁵ → Ajouter un compte → Connexion avec URL uniquement</li>
+            <li>URL de base : l'URL copiée ci-dessus (sans `/<token>` — DAVx⁵ re-routent CalDAV)</li>
+            <li>Cocher <em>Lire seulement</em> (le service est en lecture seule)</li>
+          </ol>
+        </dd>
+      </dl>
+    </article>
+
+    <p>
+      <a href="./" role="button" class="secondary outline">← Tableau de bord</a>
+    </p>
+  {% endif %}
+</section>
+
+<script>
+function showTokenDialog(raw) {
+  let data;
+  try { data = JSON.parse(raw); } catch { return; }
+  const url = '{{ public_base_url }}/ical/' + data.token;
+  const text = `Token "${data.label}" créé avec succès.\n\n` +
+               `URL d'abonnement (à coller dans Google Agenda, etc.) :\n` +
+               url + '\n\n' +
+               `⚠ Copiez cette URL MAINTENANT — elle ne sera plus affichée en clair après rechargement.`;
+  // Affichage dans une boîte de dialogue simple : copier + alert.
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(() => {
+      window.alert(text + '\n\n(URL déjà copiée dans le presse-papier)');
+    }, () => window.alert(text));
+  } else {
+    window.prompt('Copiez cette URL :', url);
+  }
+}
+
+function copyIcalUrl(btn, url) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(() => {
+      const old = btn.textContent;
+      btn.textContent = '✓ copié';
+      setTimeout(() => { btn.textContent = old; }, 1500);
+    });
+  } else {
+    window.prompt('Copiez cette URL :', url);
+  }
+}
+</script>
+{% endblock %}

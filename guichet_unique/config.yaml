@@ -1,0 +1,40 @@
+name: HA - Guichet Unique
+version: "2.0.0"
+slug: guichet_unique
+description: Inscriptions périscolaire/cantine (espace-citoyens.net) vers un agenda Home Assistant
+url: https://github.com/cabatech/ha-guichet-unique
+arch:
+  - amd64
+  - aarch64
+init: false
+homeassistant_api: true
+ingress: true
+ingress_port: 8236
+panel_icon: mdi:school
+panel_title: Guichet Unique
+# Port désactivé par défaut ; à mapper uniquement pour exposer le flux iCal /ical/<token>.
+ports:
+  8236/tcp: null
+ports_description:
+  8236/tcp: WebUI + flux iCal (optionnel, Ingress suffit)
+options:
+  base_url: ""
+  username: ""
+  password: ""
+  person_id: 4
+  calendar_entity: ""
+  cron: "0 6 * * *"
+  mqtt_port: 1883
+schema:
+  base_url: url
+  username: str
+  password: password
+  person_id: int(1,)
+  calendar_entity: match(^calendar\.[a-z0-9_]+$)
+  cron: str
+  school_address: password?
+  public_url: url?
+  mqtt_host: str?
+  mqtt_port: port
+  mqtt_username: str?
+  mqtt_password: password?

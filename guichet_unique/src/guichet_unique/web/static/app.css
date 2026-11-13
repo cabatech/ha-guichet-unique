@@ -1,0 +1,154 @@
+/* ─── Layout ───────────────────────────────────────────────────────────── */
+.topbar { margin-top: 1rem; }
+
+main.container { padding-top: 1rem; padding-bottom: 2rem; }
+
+footer.container { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--pico-muted-border-color); color: var(--pico-muted-color); }
+
+/* ─── Status card couleurs ────────────────────────────────────────────── */
+.status.ok      header { color: var(--pico-color-green-550); }
+.status.error   header { color: var(--pico-color-red-550); }
+.status.syncing { background: var(--pico-color-amber-50); }
+
+button[disabled], button[aria-busy="true"] { cursor: wait; }
+
+/* ─── Tableau filtrable ───────────────────────────────────────────────── */
+#filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+#table-inscriptions tbody tr.hidden { display: none; }
+#table-inscriptions tbody tr:hover { background: var(--pico-card-background-color); }
+#table-inscriptions td code { font-size: 0.85em; }
+
+/* ─── iframe calendrier ───────────────────────────────────────────────── */
+iframe { width: 100%; height: 720px; border: none; border-radius: 8px; }
+
+/* ─── Boutons d'action ────────────────────────────────────────────────── */
+article > p { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+article > p > button,
+article > p > a[role="button"] { margin: 0; }
+article > p > small { margin-left: 0.25rem; }
+
+/* ─── Dashboard : grille semaine ──────────────────────────────────────── */
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+.day-cell {
+  background: var(--pico-card-background-color);
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: 6px;
+  padding: 0.5rem;
+  text-align: center;
+  min-height: 110px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+.day-cell.today {
+  border-color: var(--pico-primary);
+  border-width: 2px;
+  background: var(--pico-primary-background);
+}
+.day-cell.empty { opacity: 0.6; }
+.day-name { font-size: 0.75rem; text-transform: uppercase; letter-spacing: .04em; color: var(--pico-muted-color); }
+.day-date { font-size: 0.9rem; font-weight: bold; }
+.day-count { font-size: 1.4rem; font-weight: bold; color: var(--pico-primary); }
+.day-services { display: flex; gap: 3px; flex-wrap: wrap; justify-content: center; min-height: 14px; }
+.day-services .chip {
+  display: inline-block;
+  min-width: 18px;
+  padding: 1px 4px;
+  font-size: 0.7rem;
+  border-radius: 8px;
+  color: white;
+  font-weight: bold;
+}
+.day-total { font-size: 0.85rem; font-weight: bold; color: var(--pico-color-green-600, var(--pico-color-green-550)); }
+.day-empty { color: var(--pico-muted-color); }
+
+/* Légende des couleurs par service (tableau de bord) */
+.color-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.9rem;
+  align-items: center;
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  color: var(--pico-muted-color);
+}
+.color-legend .legend-title { font-weight: bold; color: var(--pico-color); }
+.color-legend .legend-item { display: inline-flex; align-items: center; gap: 0.35rem; }
+.color-legend .legend-swatch {
+  display: inline-block;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: bold;
+  text-align: center;
+  line-height: 18px;
+}
+
+/* ─── Dashboard : cartes facturation ──────────────────────────────────── */
+.billing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+.billing-card {
+  background: var(--pico-card-background-color);
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: 8px;
+  padding: 1rem;
+}
+.billing-card.accent {
+  border-color: var(--pico-primary);
+  border-width: 2px;
+}
+.billing-card > header {
+  display: flex; align-items: baseline; gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+.billing-card .big-number {
+  display: flex; align-items: baseline; gap: 0.5rem; margin: 0.5rem 0;
+}
+.billing-card .big-number strong { font-size: 1.8rem; }
+.billing-card table.compact {
+  width: 100%; font-size: 0.85rem;
+}
+.billing-card table.compact td { padding: 0.25rem 0.4rem; border-bottom: 1px solid var(--pico-muted-border-color); }
+.billing-card table.compact tr:last-child td { border-bottom: none; }
+.billing-card .missing-warning {
+  margin-top: 0.5rem; padding: 0.5rem;
+  background: var(--pico-color-amber-50);
+  border-radius: 4px; font-size: 0.85rem;
+}
+
+/* ─── Tabs navigation (settings) ─────────────────────────────────────── */
+nav.tabs ul { padding: 0; }
+nav.tabs a {
+  display: inline-block;
+  padding: 0.4rem 0.9rem;
+  border-radius: 6px;
+  color: var(--pico-muted-color);
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+nav.tabs a:hover { color: var(--pico-primary); }
+nav.tabs a.active {
+  color: var(--pico-primary);
+  border-color: var(--pico-primary);
+  background: var(--pico-primary-background);
+  font-weight: bold;
+}

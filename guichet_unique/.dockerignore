@@ -1,0 +1,54 @@
+# ── Git / secrets / config locale ──────────────────────────────────────────
+.git/
+.gitignore
+.gitattributes
+
+# Secrets : .env est monté au runtime via env_file
+.env
+.env.*
+!.env.example
+
+# ── Python / uv : tout est installé dans le builder stage ───────────────────
+.venv/
+.uv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+
+# ── Sorties : persistées via volume Docker ─────────────────────────────────
+data/raw_*.html
+data/cal_*.json
+data/inscriptions_*.json
+data/inscriptions_*.csv
+data/inscriptions_*.ics
+data/state_*.json
+
+# ── IDE / OS ───────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── Docker / docs ──────────────────────────────────────────────────────────
+Dockerfile
+docker-compose.yml
+docker-compose.*.yml
+compose.yaml
+compose.*.yaml
+.dockerignore
+deploy/
+docs/
+
+# ── Divers ─────────────────────────────────────────────────────────────────
+*.log
+# README.md est NECESSIAIRE au build (hatchling lit `readme`)
+# On garde donc README.md (légitime) et on exclut les autres docs
+*.md
+!README.md

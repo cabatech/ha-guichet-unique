@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Inscriptions — {{ person_label }}{% endblock %}
+
+{% block content %}
+<section>
+  <hgroup>
+    <h1>Inscriptions</h1>
+    <p>
+      <strong>{{ person_label }}</strong> —
+      {{ inscriptions | length }} entrées
+      {% if total is defined %}
+        — total estimé : <strong>{{ '%.2f €' | format(total) }}</strong>
+        <small>(d'après le <a href="settings">carnet de prix</a>)</small>
+      {% endif %}
+    </p>
+  </hgroup>
+
+  <div id="filters">
+    <label>
+      Service
+      <select id="filter-service">
+        <option value="all">Tous les services</option>
+        {% for s in services %}
+          <option value="{{ s }}">{{ s }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Recherche
+      <input id="filter-q" type="search" placeholder="libellé, école, statut…" />
+    </label>
+    <label>
+      À partir du
+      <input id="filter-from" type="date" />
+    </label>
+    <label>
+      Jusqu'au
+      <input id="filter-to" type="date" />
+    </label>
+  </div>
+
+  <figure>
+    <table id="table-inscriptions" role="grid">
+      <thead>
+        <tr>
+          <th>Jour</th>
+          <th>Service</th>
+          <th>Libellé</th>
+          <th>École</th>
+          <th>Statut</th>
+          <th>Prix unit.</th>
+          <th>Coût</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ins in inscriptions %}
+          <tr
+              data-service="{{ ins.service }}"
+              data-q="{{ (ins.statut or '') ~ ' ' ~ (ins.raw.get('lib_unite') or '') ~ ' ' ~ (ins.raw.get('ecole') or '') }}"
+              data-jour="{{ ins.jour }}"
+          >
+            <td><code>{{ ins.jour }}</code></td>
+            <td>{{ ins.service }}</td>
+            <td>{{ ins.raw.get('lib_unite') or '—' }}</td>
+            <td>{{ ins.raw.get('ecole') or '—' }}</td>
+            <td>{{ ins.statut or '—' }}</td>
+            <td>
+              {% if ins.applicable_price is not none %}
+                {{ '%.2f €' | format(ins.applicable_price) }}
+              {% else %}
+                <small style="color:var(--pico-color-red-550)">?</small>
+              {% endif %}
+            </td>
+            <td>
+              {% if ins.applicable_price is not none %}
+                <strong>{{ '%.2f €' | format(ins.applicable_price) }}</strong>
+              {% else %}—{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <figcaption>
+      <span id="counter">{{ inscriptions | length }} entrée(s)</span> —
+      <small>filtre temps réel côté navigateur</small>
+    </figcaption>
+  </figure>
+</section>
+
+<script src="static/table.js" defer></script>
+{% endblock %}

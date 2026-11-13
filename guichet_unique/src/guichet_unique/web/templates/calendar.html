@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Calendrier{% endblock %}
+
+{% block content %}
+<section>
+  <hgroup>
+    <h1>Calendrier</h1>
+    <p>
+      Le calendrier ci-dessous est alimenté par le fichier
+      <code>{{ ics_url }}</code>. Vous pouvez aussi l'utiliser dans
+      n'importe quel client CalDAV (Thunderbird, DAVx5, Home Assistant…)
+      directement :
+      <code>http://&lt;nas&gt;:8236/calendar.ics</code>
+    </p>
+  </hgroup>
+
+  <article data-theme="light">
+    <iframe src="static/fullcalendar.html" title="Calendrier"></iframe>
+  </article>
+</section>
+{% endblock %}

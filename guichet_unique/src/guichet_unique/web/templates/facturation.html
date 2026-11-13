@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Facturation — {{ month_label }}{% endblock %}
+
+{% block content %}
+<section>
+  <hgroup>
+    <h1>Facturation {{ month_label }}</h1>
+    <p>Total estimé sur la base des inscriptions chargées et du carnet de prix en vigueur sur la journée.</p>
+  </hgroup>
+
+  <article>
+    <header>
+      <strong>Total : {{ '%.2f €' | format(breakdown.total) }}</strong>
+      <small>({{ breakdown.total_count }} inscription{{ '' if breakdown.total_count == 1 else 's' }} active{{ '' if breakdown.total_count == 1 else 's' }})</small>
+    </header>
+
+    {% if breakdown.missing %}
+      <p style="background: var(--pico-color-amber-50); padding: 0.5rem; border-radius: 4px;">
+        <strong>⚠ Tarif manquant</strong> : {{ breakdown.missing | length }} service{{ '' if breakdown.missing|length == 1 else 's' }}
+        n'{{ '' if breakdown.missing|length == 1 else 'ont' }} a pas de prix applicable pour ce mois.
+        Ajoutez-les dans <a href="settings">Tarifs</a>.
+      </p>
+    {% endif %}
+
+    {% if breakdown.by_service %}
+      <figure>
+        <table>
+          <thead>
+            <tr>
+              <th>Service</th>
+              <th>Prix courant</th>
+              <th>Nb réservations</th>
+              <th>Total estimé</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for line in breakdown.by_service %}
+              <tr {% if line.missing_price %}style="opacity:0.6"{% endif %}>
+                <td>{{ line.service }} {% if line.missing_price %}<small style="color:var(--pico-color-red-550)">(prix ?)</small>{% endif %}</td>
+                <td>{% if line.current_price is not none %}{{ '%.2f €' | format(line.current_price) }}{% else %}<em>—</em>{% endif %}</td>
+                <td><code>{{ line.count }}</code></td>
+                <td><strong>{{ '%.2f €' | format(line.total) }}</strong></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th colspan="3"><strong>Total général</strong></th>
+              <th><strong>{{ '%.2f €' | format(breakdown.total) }}</strong></th>
+            </tr>
+          </tfoot>
+        </table>
+        <figcaption>
+          <small>
+            Calcul : pour chaque inscription au service <em>S</em> le jour <em>J</em>, on prend
+            le tarif du carnet de prix dont la plage <code>[start_date, end_date]</code> contient <em>J</em>.
+          </small>
+        </figcaption>
+      </figure>
+    {% endif %}
+  </article>
+
+  <article>
+    <header><strong>Naviguer dans l'historique</strong></header>
+    {% if history %}
+      <ul>
+        {% for (y, m) in history %}
+          {% set m_label = (y ~ '-' ~ '%02d' | format(m)) %}
+          <li>
+            <a {% if y == year and m == month %}style="font-weight:bold"{% endif %}
+               href="facturation?year={{ y }}&month={{ m }}">{{ m_label }}</a>
+            {% if y == year and m == month %}← mois actuel{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p><em>Aucune donnée disponible. Lancez d'abord une extraction.</em></p>
+    {% endif %}
+  </article>
+
+  <p>
+    <a href="settings" role="button" class="outline">← Tarifs</a>
+    <a href="./" role="button" class="outline">Tableau de bord</a>
+  </p>
+</section>
+
+<style>
+  article header { display: flex; align-items: baseline; gap: 1rem; }
+</style>
+{% endblock %}

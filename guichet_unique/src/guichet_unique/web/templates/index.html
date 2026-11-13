@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Tableau de bord — {{ person.prenom }} {{ person.nom }}{% endblock %}
+
+{% block content %}
+<section>
+  <hgroup>
+    <h1>Tableau de bord</h1>
+    <p>
+      <strong>{{ person.prenom }} {{ person.nom }}</strong>
+      {% if person.id %}<small>(id={{ person.id }})</small>{% endif %}
+      — v{{ version }}
+    </p>
+  </hgroup>
+
+  <div id="status-card" hx-get="partials/status" hx-trigger="every 5s" hx-swap="innerHTML">
+    {% include "_status.html" %}
+  </div>
+
+  <aside class="color-legend" aria-label="Légende des couleurs par service">
+    <span class="legend-title">Légende&nbsp;:</span>
+    {% for item in legend %}
+      <span class="legend-item">
+        <span class="legend-swatch" style="background: {{ item.color }};">•</span>
+        <span>{{ item.label }}</span>
+      </span>
+    {% endfor %}
+  </aside>
+
+  <article>
+    <header>
+      <strong>Cette semaine</strong>
+      <small>{{ summary.this_week.start_short }} → {{ summary.this_week.end_short }}</small>
+    </header>
+    <p class="muted">
+      <strong>{{ summary.this_week.totals.count }}</strong> inscription{{ '' if summary.this_week.totals.count in [0,1] else 's' }}
+      {% if summary.this_week.totals.total %}— total <strong>{{ '%.2f €' | format(summary.this_week.totals.total) }}</strong>{% endif %}
+    </p>
+    <div class="week-grid">
+      {% for day in summary.this_week.days %}
+        <div class="day-cell {% if day.is_today %}today{% endif %} {% if day.count == 0 %}empty{% endif %}">
+          <div class="day-name">{{ summary.this_week.weekday_labels[loop.index0] }}</div>
+          <div class="day-date">{{ day.date_short }}</div>
+          {% if day.count %}
+            <div class="day-count">{{ day.count }}</div>
+            <div class="day-services">
+              {% for s in day.by_service %}
+                <span class="chip" style="background: {{ colors.get(s.value, '#34495e') }};" title="{{ s.label }}">{{ s.count }}</span>
+              {% endfor %}
+            </div>
+            {% if day.total %}
+              <div class="day-total">{{ '%.2f €' | format(day.total) }}</div>
+            {% endif %}
+          {% else %}
+            <div class="day-empty">—</div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  </article>
+
+  <article>
+    <header>
+      <strong>Semaine prochaine</strong>
+      <small>{{ summary.next_week.start_short }} → {{ summary.next_week.end_short }}</small>
+    </header>
+    <p class="muted">
+      <strong>{{ summary.next_week.totals.count }}</strong> inscription{{ '' if summary.next_week.totals.count in [0,1] else 's' }}
+      {% if summary.next_week.totals.total %}— total <strong>{{ '%.2f €' | format(summary.next_week.totals.total) }}</strong>{% endif %}
+    </p>
+    <div class="week-grid">
+      {% for day in summary.next_week.days %}
+        <div class="day-cell {% if day.count == 0 %}empty{% endif %}">
+          <div class="day-name">{{ summary.next_week.weekday_labels[loop.index0] }}</div>
+          <div class="day-date">{{ day.date_short }}</div>
+          {% if day.count %}
+            <div class="day-count">{{ day.count }}</div>
+            <div class="day-services">
+              {% for s in day.by_service %}
+                <span class="chip" style="background: {{ colors.get(s.value, '#34495e') }};" title="{{ s.label }}">{{ s.count }}</span>
+              {% endfor %}
+            </div>
+            {% if day.total %}
+              <div class="day-total">{{ '%.2f €' | format(day.total) }}</div>
+            {% endif %}
+          {% else %}
+            <div class="day-empty">—</div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  </article>
+
+  <article>
+    <header>
+      <strong>Facturation récente</strong>
+      <small>(pour {{ person.prenom }} {{ person.nom }})</small>
+    </header>
+    <div class="billing-grid">
+      <div class="billing-card">
+        <header>
+          <strong>Mois précédent</strong>
+          <small>{{ prev_month_label }}</small>
+        </header>
+        {% set prev = bimonth.previous %}
+        <p class="big-number">
+          <strong>{{ '%.2f €' | format(prev.total) }}</strong>
+          <small>{{ prev.total_count }} réservation{{ '' if prev.total_count in [0,1] else 's' }}</small>
+        </p>
+        {% if prev.by_service %}
+          <table class="compact">
+            {% for line in prev.by_service[:5] %}
+              <tr>
+                <td>{{ line.service }}</td>
+                <td><code>x{{ line.count }}</code></td>
+                <td><strong>{{ '%.2f €' | format(line.total) }}</strong></td>
+              </tr>
+            {% endfor %}
+          </table>
+          {% if prev.by_service | length > 5 %}
+            <p><a href="facturation?year={{ prev.year }}&month={{ prev.month }}">Voir le détail →</a></p>
+          {% endif %}
+        {% else %}
+          <p class="muted"><em>Aucune inscription ce mois-là.</em></p>
+        {% endif %}
+      </div>
+
+      <div class="billing-card accent">
+        <header>
+          <strong>Mois en cours</strong>
+          <small>{{ cur_month_label }}</small>
+        </header>
+        {% set cur = bimonth.current %}
+        <p class="big-number">
+          <strong>{{ '%.2f €' | format(cur.total) }}</strong>
+          <small>{{ cur.total_count }} réservation{{ '' if cur.total_count in [0,1] else 's' }}</small>
+        </p>
+        {% if cur.by_service %}
+          <table class="compact">
+            {% for line in cur.by_service[:5] %}
+              <tr>
+                <td>{{ line.service }} {% if line.missing_price %}<small style="color:var(--pico-color-red-550)">(prix ?)</small>{% endif %}</td>
+                <td><code>x{{ line.count }}</code></td>
+                <td><strong>{{ '%.2f €' | format(line.total) }}</strong></td>
+              </tr>
+            {% endfor %}
+          </table>
+          {% if cur.by_service | length > 5 %}
+            <p><a href="facturation?year={{ cur.year }}&month={{ cur.month }}">Voir le détail →</a></p>
+          {% endif %}
+        {% else %}
+          <p class="muted"><em>Pas encore de réservations ce mois-ci.</em></p>
+        {% endif %}
+        {% if cur.missing %}
+          <p class="missing-warning"><strong>⚠</strong> Tarif{{ '' if cur.missing|length == 1 else 's' }} manquant{{ '' if cur.missing|length == 1 else 's' }} : définissez-les dans <a href="settings?tab=pricing">Tarifs</a>.</p>
+        {% endif %}
+      </div>
+    </div>
+  </article>
+
+  <article>
+    <header>
+      <strong>Actions &amp; paramétrage</strong>
+    </header>
+    <p>
+      <a href="inscriptions" role="button" class="secondary">Voir les inscriptions ({{ nb_inscriptions }})</a>
+      <a href="calendrier" role="button" class="secondary">Calendrier</a>
+      <a href="settings?tab=pricing" role="button" class="secondary outline">Tarifs</a>
+      <a href="settings?tab=configuration" role="button" class="secondary outline">Configuration &amp; synchronisation</a>
+    </p>
+    <p class="muted">
+      <small>
+        Auto-sync {% if auto_sync_enabled %}activé (cron <code>{{ cron_expr }}</code>, Europe/Paris){% else %}désactivé (GUICHET_AUTO_SYNC≠1){% endif %}.
+        Modifier via <a href="settings?tab=configuration">Configuration</a>.
+      </small>
+    </p>
+  </article>
+</section>
+{% endblock %}

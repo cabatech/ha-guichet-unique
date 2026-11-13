@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Guichet Unique{% endblock %}</title>
+  <base href="{{ request.headers.get('x-ingress-path', '') }}/">
+  <link rel="stylesheet" href="static/pico.min.css" />
+  <link rel="stylesheet" href="static/app.css" />
+  <script src="static/htmx.min.js" defer></script>
+</head>
+<body>
+  <header class="container topbar">
+    <nav>
+      <ul>
+        <li><a href="./" hx-boost="true"><strong>Guichet Unique</strong></a></li>
+      </ul>
+      <ul>
+        <li><a href="./" hx-boost="true">Tableau de bord</a></li>
+        <li><a href="inscriptions" hx-boost="true">Inscriptions</a></li>
+        <li><a href="calendrier" hx-boost="true">Calendrier</a></li>
+        <li><a href="facturation" hx-boost="true">Facturation</a></li>
+        <li><a href="settings?tab=pricing" hx-boost="true">Tarifs</a></li>
+        <li><a href="settings?tab=configuration" hx-boost="true">Configuration</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="container">
+    <small>
+      Guichet Unique v{{ version|default('0.1.0') }} —
+      {% if person is defined and person %}<code>{{ person.prenom|default('') }} {{ person.nom|default('') }}{% if person.id %} (id={{ person.id }}){% endif %}</code>{% endif %}
+    </small>
+  </footer>
+</body>
+</html>
