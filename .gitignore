@@ -23,3 +23,6 @@ __pycache__/
 .idea/
 *.swp
 .DS_Store
+
+# Lien vers la note du second brain (non versionné)
+.contexte.md
