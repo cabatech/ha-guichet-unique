@@ -1,5 +1,5 @@
 name: HA - Guichet Unique
-version: "2.0.0"
+version: "2.1.0"
 slug: guichet_unique
 description: Inscriptions périscolaire/cantine (espace-citoyens.net) vers un agenda Home Assistant
 url: https://github.com/cabatech/ha-guichet-unique

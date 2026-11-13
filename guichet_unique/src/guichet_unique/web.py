@@ -30,7 +30,7 @@ from .cli import _load_result_from_json
 from .config import Config, ConfigError
 from .exporters import DEFAULT_SCHEDULE
 from .ha_calendar import publish_to_ha
-from .mqtt_entities import compute_states, publish_entities
+from .mqtt_entities import compute_states, listen_for_sync, publish_entities
 from .ical_tokens import ICalTokenStore, default_tokens_path
 from .models import Service
 from .pipeline import run_extraction
@@ -198,6 +198,10 @@ def create_app(config: Config | None = None) -> FastAPI:
     @asynccontextmanager
     async def _lifespan(_app: FastAPI):
         """Démarre/arrête le scheduler APScheduler pour l'auto-sync."""
+        if state.config.mqtt_host:
+            listen_for_sync(state.config, lambda: state.start_sync(
+                also_publish=bool(state.config.ha_calendar_entity), trigger="mqtt",
+            ))
         if os.getenv("GUICHET_AUTO_SYNC", "1") != "1":
             logger.info("Auto-sync désactivé (GUICHET_AUTO_SYNC!=1)")
             yield

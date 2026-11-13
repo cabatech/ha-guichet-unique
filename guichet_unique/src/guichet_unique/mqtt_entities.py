@@ -9,6 +9,7 @@ import json
 import logging
 from datetime import date, datetime, timedelta
 
+from paho.mqtt import client as mqtt
 from paho.mqtt import publish
 
 from ._version import __version__
@@ -18,6 +19,7 @@ from .models import Service
 logger = logging.getLogger(__name__)
 
 STATE_TOPIC = "guichet_unique/state"
+COMMAND_TOPIC = "guichet_unique/sync"
 DEVICE = {
     "identifiers": ["guichet_unique"],
     "name": "Guichet Unique",
@@ -78,6 +80,15 @@ def publish_entities(config: Config, entities: dict, state: dict) -> None:
         }
         topic = f"homeassistant/{component}/guichet_unique/{key}/config"
         msgs.append({"topic": topic, "payload": json.dumps(cfg), "retain": True, "qos": 1})
+    button = {
+        "name": "Synchroniser",
+        "unique_id": "guichet_unique_sync",
+        "default_entity_id": "button.guichet_synchroniser",
+        "command_topic": COMMAND_TOPIC,
+        "device": DEVICE,
+    }
+    msgs.append({"topic": "homeassistant/button/guichet_unique/sync/config",
+                 "payload": json.dumps(button), "retain": True, "qos": 1})
     msgs.append({"topic": STATE_TOPIC, "payload": json.dumps(state), "retain": True, "qos": 1})
     auth = (
         {"username": config.mqtt_username, "password": config.mqtt_password}
@@ -85,3 +96,16 @@ def publish_entities(config: Config, entities: dict, state: dict) -> None:
     )
     publish.multiple(msgs, hostname=config.mqtt_host, port=config.mqtt_port, auth=auth)
     logger.info("MQTT : %d entités publiées sur %s", len(entities), config.mqtt_host)
+
+
+def listen_for_sync(config: Config, on_press) -> mqtt.Client:
+    """Appelle ``on_press()`` à chaque appui sur le bouton HA (reconnexion automatique)."""
+    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id="guichet_unique_sync")
+    if config.mqtt_username:
+        client.username_pw_set(config.mqtt_username, config.mqtt_password)
+    # on_connect est rappelé à chaque reconnexion : l'abonnement est donc rétabli.
+    client.on_connect = lambda c, *_: c.subscribe(COMMAND_TOPIC)
+    client.on_message = lambda *_: on_press()
+    client.connect_async(config.mqtt_host, config.mqtt_port)
+    client.loop_start()
+    return client

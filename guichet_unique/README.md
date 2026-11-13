@@ -62,6 +62,7 @@ dans les inscriptions (`cantine`, `periscolaire_matin`, `periscolaire_soir`, …
 | `sensor.guichet_<service>_cout_mois`    | € ce mois     |
 | `sensor.guichet_cout_mois` / `_cout_mois_precedent` | € total |
 | `sensor.guichet_derniere_sync`          | horodatage    |
+| `button.guichet_synchroniser`           | sync manuelle (portail + agenda) |
 
 Mises à jour après chaque sync, au démarrage et à 00:01 (bascule
 aujourd'hui/demain). Si l'add-on est arrêté, les valeurs restent figées.
